@@ -155,7 +155,7 @@ namespace acme {
   // ============================================================================
 
   OM_uint32 KerberosAuth::signMessage(const std::string &message,
-                                       std::string &signature) {
+                                      std::string &signature) {
     if (client_cred_ == GSS_C_NO_CREDENTIAL) {
       console::e("No client credentials available for signing");
       return GSS_S_NO_CRED;
@@ -170,11 +170,10 @@ namespace acme {
     input_token.value = const_cast<char *>(message.c_str());
 
     // Initialize security context for MIC generation
-    maj_stat = gss_init_sec_context(&min_stat, client_cred_, &context,
-                                    GSS_C_NO_NAME, GSS_C_NO_OID,
-                                    GSS_C_MUTUAL_FLAG, GSS_C_INDEFINITE,
-                                    nullptr, nullptr, nullptr, nullptr,
-                                    nullptr, nullptr);
+    maj_stat = gss_init_sec_context(
+        &min_stat, client_cred_, &context, GSS_C_NO_NAME, GSS_C_NO_OID,
+        GSS_C_MUTUAL_FLAG, GSS_C_INDEFINITE, nullptr, nullptr, nullptr, nullptr,
+        nullptr, nullptr);
 
     if (maj_stat != GSS_S_COMPLETE && maj_stat != GSS_S_CONTINUE_NEEDED) {
       console::e("Failed to initialize GSS context for MIC generation");
@@ -182,8 +181,8 @@ namespace acme {
     }
 
     // Generate MIC using GSS_GetMIC
-    maj_stat = gss_get_mic(&min_stat, context, GSS_C_QOP_DEFAULT,
-                           &input_token, &output_token);
+    maj_stat = gss_get_mic(&min_stat, context, GSS_C_QOP_DEFAULT, &input_token,
+                           &output_token);
 
     if (maj_stat == GSS_S_COMPLETE) {
       signature = std::string(static_cast<char *>(output_token.value),

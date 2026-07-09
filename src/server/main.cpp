@@ -1,5 +1,5 @@
-#include "acme_server.hpp"
 #include "Console.hpp"
+#include "acme_server.hpp"
 #include <csignal>
 #include <getopt.h>
 #include <iostream>

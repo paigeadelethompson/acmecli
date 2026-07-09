@@ -1,9 +1,9 @@
 #include "acme_server.hpp"
-#include "certificate_manager.hpp"
 #include "Console.hpp"
-#include "policy_manager.hpp"
 #include "HTTPServer.hpp"
 #include "KerberosAuth.hpp"
+#include "certificate_manager.hpp"
+#include "policy_manager.hpp"
 #include <chrono>
 #include <cstdint>
 #include <fstream>
@@ -60,120 +60,104 @@ namespace acme {
     console::e("ACME Server running");
 
     // Create and initialize HTTP server
-    http_server_ = std::make_unique<HTTPServer>(server_port_, kdc_principal_,
-                                                 kdc_keytab_);
+    http_server_ =
+        std::make_unique<HTTPServer>(server_port_, kdc_principal_, kdc_keytab_);
     if (!http_server_->initialize()) {
       console::e("Failed to initialize HTTP server");
       return;
     }
 
     // Register ACME routes
-    http_server_->registerRoute("/acme/new-nonce",
-                                [this](const std::string &method,
-                                       const std::string &path,
-                                       const std::string &body,
-                                       std::string &response) {
-                                  auto nonce = generateNonce();
-                                  response = R"({"nonce": ")" + nonce + R"("})";
-                                });
+    http_server_->registerRoute(
+        "/acme/new-nonce",
+        [this](const std::string &method, const std::string &path,
+               const std::string &body, std::string &response) {
+          auto nonce = generateNonce();
+          response = R"({"nonce": ")" + nonce + R"("})";
+        });
 
-    http_server_->registerRoute("/acme/dir",
-                                [this](const std::string &method,
-                                       const std::string &path,
-                                       const std::string &body,
-                                       std::string &response) {
-                                  auto dir = handleDirectory();
-                                  response = dir.toStyledString();
-                                });
+    http_server_->registerRoute(
+        "/acme/dir", [this](const std::string &method, const std::string &path,
+                            const std::string &body, std::string &response) {
+          auto dir = handleDirectory();
+          response = dir.toStyledString();
+        });
 
     // Register secure routes with Kerberos authentication
-    http_server_->registerSecureRoute("/acme/new-account",
-                                      [this](const std::string &method,
-                                             const std::string &path,
-                                             const std::string &body,
-                                             std::string &response) {
-                                        Json::Value request;
-                                        Json::Reader reader;
-                                        if (reader.parse(body, request)) {
-                                          auto result = handleNewAccount(request);
-                                          response = result.toStyledString();
-                                        } else {
-                                          response = R"({"error": "Invalid JSON"})";
-                                        }
-                                      });
+    http_server_->registerSecureRoute(
+        "/acme/new-account",
+        [this](const std::string &method, const std::string &path,
+               const std::string &body, std::string &response) {
+          Json::Value request;
+          Json::Reader reader;
+          if (reader.parse(body, request)) {
+            auto result = handleNewAccount(request);
+            response = result.toStyledString();
+          } else {
+            response = R"({"error": "Invalid JSON"})";
+          }
+        });
 
-    http_server_->registerSecureRoute("/acme/order",
-                                      [this](const std::string &method,
-                                             const std::string &path,
-                                             const std::string &body,
-                                             std::string &response) {
-                                        // Extract order_id from path
-                                        std::string order_id = path.substr(
-                                            path.find_last_of('/') + 1);
-                                        Json::Value request;
-                                        Json::Reader reader;
-                                        if (reader.parse(body, request)) {
-                                          auto result = handleOrder(order_id,
-                                                                    request);
-                                          response = result.toStyledString();
-                                        } else {
-                                          response = R"({"error": "Invalid JSON"})";
-                                        }
-                                      });
+    http_server_->registerSecureRoute(
+        "/acme/order",
+        [this](const std::string &method, const std::string &path,
+               const std::string &body, std::string &response) {
+          // Extract order_id from path
+          std::string order_id = path.substr(path.find_last_of('/') + 1);
+          Json::Value request;
+          Json::Reader reader;
+          if (reader.parse(body, request)) {
+            auto result = handleOrder(order_id, request);
+            response = result.toStyledString();
+          } else {
+            response = R"({"error": "Invalid JSON"})";
+          }
+        });
 
-    http_server_->registerSecureRoute("/acme/finalize",
-                                      [this](const std::string &method,
-                                             const std::string &path,
-                                             const std::string &body,
-                                             std::string &response) {
-                                        // Extract order_id from path
-                                        std::string order_id = path.substr(
-                                            path.find_last_of('/') + 1);
-                                        Json::Value request;
-                                        Json::Reader reader;
-                                        if (reader.parse(body, request)) {
-                                          auto result = handleFinalizeOrder(
-                                              order_id, request);
-                                          response = result.toStyledString();
-                                        } else {
-                                          response = R"({"error": "Invalid JSON"})";
-                                        }
-                                      });
+    http_server_->registerSecureRoute(
+        "/acme/finalize",
+        [this](const std::string &method, const std::string &path,
+               const std::string &body, std::string &response) {
+          // Extract order_id from path
+          std::string order_id = path.substr(path.find_last_of('/') + 1);
+          Json::Value request;
+          Json::Reader reader;
+          if (reader.parse(body, request)) {
+            auto result = handleFinalizeOrder(order_id, request);
+            response = result.toStyledString();
+          } else {
+            response = R"({"error": "Invalid JSON"})";
+          }
+        });
 
-    http_server_->registerSecureRoute("/acme/cert",
-                                      [this](const std::string &method,
-                                             const std::string &path,
-                                             const std::string &body,
-                                             std::string &response) {
-                                        // Extract cert_id from path
-                                        std::string cert_id = path.substr(
-                                            path.find_last_of('/') + 1);
-                                        Json::Value request;
-                                        Json::Reader reader;
-                                        if (reader.parse(body, request)) {
-                                          auto result = handleCertificate(
-                                              cert_id, request);
-                                          response = result.toStyledString();
-                                        } else {
-                                          response = R"({"error": "Invalid JSON"})";
-                                        }
-                                      });
+    http_server_->registerSecureRoute(
+        "/acme/cert", [this](const std::string &method, const std::string &path,
+                             const std::string &body, std::string &response) {
+          // Extract cert_id from path
+          std::string cert_id = path.substr(path.find_last_of('/') + 1);
+          Json::Value request;
+          Json::Reader reader;
+          if (reader.parse(body, request)) {
+            auto result = handleCertificate(cert_id, request);
+            response = result.toStyledString();
+          } else {
+            response = R"({"error": "Invalid JSON"})";
+          }
+        });
 
-    http_server_->registerSecureRoute("/acme/revoke-cert",
-                                      [this](const std::string &method,
-                                             const std::string &path,
-                                             const std::string &body,
-                                             std::string &response) {
-                                        Json::Value request;
-                                        Json::Reader reader;
-                                        if (reader.parse(body, request)) {
-                                          auto result = handleRevokeCertificate(
-                                              request);
-                                          response = result.toStyledString();
-                                        } else {
-                                          response = R"({"error": "Invalid JSON"})";
-                                        }
-                                      });
+    http_server_->registerSecureRoute(
+        "/acme/revoke-cert",
+        [this](const std::string &method, const std::string &path,
+               const std::string &body, std::string &response) {
+          Json::Value request;
+          Json::Reader reader;
+          if (reader.parse(body, request)) {
+            auto result = handleRevokeCertificate(request);
+            response = result.toStyledString();
+          } else {
+            response = R"({"error": "Invalid JSON"})";
+          }
+        });
 
     // Start the HTTP server
     if (!http_server_->start()) {

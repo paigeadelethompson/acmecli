@@ -1,7 +1,7 @@
 #include "acme_client.hpp"
+#include "Console.hpp"
 #include "HTTPClient.hpp"
-#include "console.hpp"
-#include "kerberos_auth.hpp"
+#include "KerberosAuth.hpp"
 #include <fstream>
 #include <iomanip>
 #include <openssl/bio.h>

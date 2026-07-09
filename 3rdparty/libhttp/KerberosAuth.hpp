@@ -23,7 +23,8 @@ namespace acme {
 
     // Client-side signing operations using GSS_GetMIC for JWS signing
     OM_uint32 signMessage(const std::string &message, std::string &signature);
-    OM_uint32 verifyMessage(const std::string &message, const std::string &signature);
+    OM_uint32 verifyMessage(const std::string &message,
+                            const std::string &signature);
 
   private:
     std::string principal_;

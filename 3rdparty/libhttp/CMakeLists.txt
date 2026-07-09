@@ -33,5 +33,9 @@ if(GSSAPI_FOUND)
     target_link_libraries(libhttp PUBLIC ${GSSAPI_LIBRARIES})
 endif()
 
+# Pthread support for std::thread
+find_package(Threads REQUIRED)
+target_link_libraries(libhttp PUBLIC Threads::Threads)
+
 # Set C++ standard
 target_compile_features(libhttp PUBLIC cxx_std_26)

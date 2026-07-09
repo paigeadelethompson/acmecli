@@ -1,12 +1,12 @@
 #pragma once
 
+#include <functional>
+#include <gssapi/gssapi.h>
 #include <memory>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
-#include <functional>
-#include <thread>
-#include <gssapi/gssapi.h>
 
 namespace acme {
 
@@ -48,20 +48,22 @@ namespace acme {
      * @param path Route path (e.g., "/acme/new-nonce")
      * @param handler Handler function
      */
-    void registerRoute(const std::string &path,
-                       std::function<void(const std::string &, const std::string &,
-                                         const std::string &, std::string &)>
-                           handler);
+    void
+    registerRoute(const std::string &path,
+                  std::function<void(const std::string &, const std::string &,
+                                     const std::string &, std::string &)>
+                      handler);
 
     /**
      * @brief Register a route handler with Kerberos authentication
      * @param path Route path
      * @param handler Handler function
      */
-    void registerSecureRoute(const std::string &path,
-                             std::function<void(const std::string &, const std::string &,
-                                               const std::string &, std::string &)>
-                                 handler);
+    void registerSecureRoute(
+        const std::string &path,
+        std::function<void(const std::string &, const std::string &,
+                           const std::string &, std::string &)>
+            handler);
 
     /**
      * @brief Get the server port
@@ -83,9 +85,10 @@ namespace acme {
      * @param body Request body
      * @param response Response body
      */
-    void handleRequest(const std::string &request_line,
-                       const std::unordered_map<std::string, std::string> &headers,
-                       const std::string &body, std::string &response);
+    void
+    handleRequest(const std::string &request_line,
+                  const std::unordered_map<std::string, std::string> &headers,
+                  const std::string &body, std::string &response);
 
     /**
      * @brief Parse request line
@@ -103,8 +106,8 @@ namespace acme {
      * @param headers_str Headers string
      * @return Map of headers
      */
-    std::unordered_map<std::string, std::string> parseHeaders(
-        const std::string &headers_str);
+    std::unordered_map<std::string, std::string>
+    parseHeaders(const std::string &headers_str);
 
     /**
      * @brief Build response headers
@@ -141,14 +144,15 @@ namespace acme {
     gss_cred_id_t server_cred_;
     gss_ctx_id_t context_;
 
-    std::unordered_map<std::string, std::function<void(const std::string &,
-                                                        const std::string &,
-                                                        const std::string &,
-                                                        std::string &)>>
+    std::unordered_map<
+        std::string,
+        std::function<void(const std::string &, const std::string &,
+                           const std::string &, std::string &)>>
         routes_;
-    std::unordered_map<std::string,
-                       std::function<void(const std::string &, const std::string &,
-                                         const std::string &, std::string &)>>
+    std::unordered_map<
+        std::string,
+        std::function<void(const std::string &, const std::string &,
+                           const std::string &, std::string &)>>
         secure_routes_;
 
     bool running_;

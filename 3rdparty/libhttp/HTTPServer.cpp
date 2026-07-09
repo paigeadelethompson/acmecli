@@ -1,10 +1,10 @@
 #include "HTTPServer.hpp"
-#include "KerberosAuth.hpp"
 #include "Console.hpp"
+#include "KerberosAuth.hpp"
+#include <chrono>
 #include <fstream>
 #include <sstream>
 #include <thread>
-#include <chrono>
 
 namespace acme {
 
@@ -39,9 +39,9 @@ namespace acme {
       return false;
     }
 
-    maj_stat = gss_acquire_cred(&min_stat, name, GSS_C_INDEFINITE,
-                                GSS_C_NO_OID_SET, GSS_C_ACCEPT, &server_cred_,
-                                nullptr, nullptr);
+    maj_stat =
+        gss_acquire_cred(&min_stat, name, GSS_C_INDEFINITE, GSS_C_NO_OID_SET,
+                         GSS_C_ACCEPT, &server_cred_, nullptr, nullptr);
 
     gss_release_name(&min_stat, &name);
 
@@ -77,12 +77,11 @@ namespace acme {
     console::i("HTTPServer stopped");
   }
 
-  void HTTPServer::registerRoute(const std::string &path,
-                                  std::function<void(const std::string &,
-                                                    const std::string &,
-                                                    const std::string &,
-                                                    std::string &)>
-                                      handler) {
+  void HTTPServer::registerRoute(
+      const std::string &path,
+      std::function<void(const std::string &, const std::string &,
+                         const std::string &, std::string &)>
+          handler) {
     routes_[path] = handler;
     console::i("Registered route: {}", path);
   }
@@ -90,7 +89,7 @@ namespace acme {
   void HTTPServer::registerSecureRoute(
       const std::string &path,
       std::function<void(const std::string &, const std::string &,
-                        const std::string &, std::string &)>
+                         const std::string &, std::string &)>
           handler) {
     secure_routes_[path] = handler;
     console::i("Registered secure route: {}", path);
@@ -100,11 +99,10 @@ namespace acme {
 
   std::string HTTPServer::getLastError() const { return last_error_; }
 
-  void HTTPServer::handleRequest(const std::string &request_line,
-                                  const std::unordered_map<std::string,
-                                                          std::string> &headers,
-                                  const std::string &body,
-                                  std::string &response) {
+  void HTTPServer::handleRequest(
+      const std::string &request_line,
+      const std::unordered_map<std::string, std::string> &headers,
+      const std::string &body, std::string &response) {
     std::string method, path, version;
     if (!parseRequestLine(request_line, method, path, version)) {
       response = buildErrorResponse(400, "Bad Request");
@@ -178,8 +176,8 @@ namespace acme {
   }
 
   bool HTTPServer::parseRequestLine(const std::string &request_line,
-                                     std::string &method, std::string &path,
-                                     std::string &version) {
+                                    std::string &method, std::string &path,
+                                    std::string &version) {
     size_t space1 = request_line.find(' ');
     size_t space2 = request_line.find(' ', space1 + 1);
 
@@ -194,8 +192,8 @@ namespace acme {
     return true;
   }
 
-  std::unordered_map<std::string, std::string> HTTPServer::parseHeaders(
-      const std::string &headers_str) {
+  std::unordered_map<std::string, std::string>
+  HTTPServer::parseHeaders(const std::string &headers_str) {
     std::unordered_map<std::string, std::string> headers;
     std::stringstream ss(headers_str);
     std::string line;
@@ -225,7 +223,7 @@ namespace acme {
   }
 
   bool HTTPServer::handleKerberosAuth(const std::string &auth_header,
-                                       std::string &principal) {
+                                      std::string &principal) {
     if (auth_header.empty()) {
       last_error_ = "No Authorization header provided";
       return false;
@@ -253,11 +251,36 @@ namespace acme {
   }
 
   bool HTTPServer::verifyJWSSignature(const std::string &body,
-                                       const std::string &signature) {
+                                      const std::string &signature) {
     // TODO: Implement JWS signature verification
     // This would use the GSSAPI context to verify the signature
     console::i("Verifying JWS signature");
     return true;
+  }
+
+  void HTTPServer::serverLoop() {
+    // TODO: Implement actual HTTP server loop
+    // This would use a socket to listen for incoming connections
+    // For now, we'll just sleep until stopped
+    while (running_) {
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    console::i("Server loop exited");
+  }
+
+  std::string HTTPServer::buildJsonResponse(int status_code,
+                                            const std::string json_body) {
+    std::string response = buildResponseHeaders(status_code, "application/json",
+                                                json_body.length());
+    response += json_body;
+    return response;
+  }
+
+  std::string HTTPServer::buildErrorResponse(int status_code,
+                                             const std::string message) {
+    std::string error_json =
+        R"({"type": "error", "detail": ")" + message + "\"}";
+    return buildJsonResponse(status_code, error_json);
   }
 
 } // namespace acme
