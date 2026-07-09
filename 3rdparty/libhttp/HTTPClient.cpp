@@ -1,5 +1,5 @@
 #include "HTTPClient.hpp"
-#include "console.hpp"
+#include "Console.hpp"
 #include <chrono>
 #include <cstring>
 #include <fstream>

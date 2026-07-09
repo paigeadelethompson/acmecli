@@ -11,12 +11,13 @@
 #include <gssapi/gssapi.h>
 
 #include "json/json.h"
+#include "HTTPServer.hpp"
+#include "KerberosAuth.hpp"
 
 namespace acme {
 
   class CertificateManager;
   class PolicyManager;
-  class KerberosAuth;
 
   class ACMEServer {
   public:
@@ -51,9 +52,11 @@ namespace acme {
     std::string policy_file_path_;
     std::string kdc_principal_;
     std::string kdc_keytab_;
+    int server_port_;
 
     std::unique_ptr<CertificateManager> cert_manager_;
     std::unique_ptr<PolicyManager> policy_manager_;
+    std::unique_ptr<HTTPServer> http_server_;
     std::unique_ptr<KerberosAuth> kerberos_auth_;
 
     std::unordered_map<std::string, std::string> accounts_;
@@ -63,6 +66,8 @@ namespace acme {
     std::mutex accounts_mutex_;
     std::mutex orders_mutex_;
     std::mutex certificates_mutex_;
+
+    bool running_;
 
     std::string generateNonce();
     std::string generateJWS(const Json::Value &payload,

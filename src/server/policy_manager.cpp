@@ -1,5 +1,5 @@
 #include "policy_manager.hpp"
-#include "console.hpp"
+#include "Console.hpp"
 #include <algorithm>
 #include <fstream>
 #include <sstream>

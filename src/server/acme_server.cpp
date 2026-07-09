@@ -1,8 +1,9 @@
 #include "acme_server.hpp"
 #include "certificate_manager.hpp"
-#include "console.hpp"
-#include "kerberos_auth.hpp"
+#include "Console.hpp"
 #include "policy_manager.hpp"
+#include "HTTPServer.hpp"
+#include "KerberosAuth.hpp"
 #include <chrono>
 #include <cstdint>
 #include <fstream>
@@ -14,7 +15,7 @@
 namespace acme {
 
   ACMEServer::ACMEServer(const std::string &config_path)
-      : config_path_(config_path) {}
+      : config_path_(config_path), server_port_(8080), running_(false) {}
 
   ACMEServer::~ACMEServer() { stop(); }
 
@@ -56,20 +57,147 @@ namespace acme {
   }
 
   void ACMEServer::run() {
-    // TODO: Implement HTTP server with Kerberos authentication
-    // For now, this is a placeholder
-    console::e("ACME Server running (placeholder)");
-    console::e("Listening on port 8080");
+    console::e("ACME Server running");
+
+    // Create and initialize HTTP server
+    http_server_ = std::make_unique<HTTPServer>(server_port_, kdc_principal_,
+                                                 kdc_keytab_);
+    if (!http_server_->initialize()) {
+      console::e("Failed to initialize HTTP server");
+      return;
+    }
+
+    // Register ACME routes
+    http_server_->registerRoute("/acme/new-nonce",
+                                [this](const std::string &method,
+                                       const std::string &path,
+                                       const std::string &body,
+                                       std::string &response) {
+                                  auto nonce = generateNonce();
+                                  response = R"({"nonce": ")" + nonce + R"("})";
+                                });
+
+    http_server_->registerRoute("/acme/dir",
+                                [this](const std::string &method,
+                                       const std::string &path,
+                                       const std::string &body,
+                                       std::string &response) {
+                                  auto dir = handleDirectory();
+                                  response = dir.toStyledString();
+                                });
+
+    // Register secure routes with Kerberos authentication
+    http_server_->registerSecureRoute("/acme/new-account",
+                                      [this](const std::string &method,
+                                             const std::string &path,
+                                             const std::string &body,
+                                             std::string &response) {
+                                        Json::Value request;
+                                        Json::Reader reader;
+                                        if (reader.parse(body, request)) {
+                                          auto result = handleNewAccount(request);
+                                          response = result.toStyledString();
+                                        } else {
+                                          response = R"({"error": "Invalid JSON"})";
+                                        }
+                                      });
+
+    http_server_->registerSecureRoute("/acme/order",
+                                      [this](const std::string &method,
+                                             const std::string &path,
+                                             const std::string &body,
+                                             std::string &response) {
+                                        // Extract order_id from path
+                                        std::string order_id = path.substr(
+                                            path.find_last_of('/') + 1);
+                                        Json::Value request;
+                                        Json::Reader reader;
+                                        if (reader.parse(body, request)) {
+                                          auto result = handleOrder(order_id,
+                                                                    request);
+                                          response = result.toStyledString();
+                                        } else {
+                                          response = R"({"error": "Invalid JSON"})";
+                                        }
+                                      });
+
+    http_server_->registerSecureRoute("/acme/finalize",
+                                      [this](const std::string &method,
+                                             const std::string &path,
+                                             const std::string &body,
+                                             std::string &response) {
+                                        // Extract order_id from path
+                                        std::string order_id = path.substr(
+                                            path.find_last_of('/') + 1);
+                                        Json::Value request;
+                                        Json::Reader reader;
+                                        if (reader.parse(body, request)) {
+                                          auto result = handleFinalizeOrder(
+                                              order_id, request);
+                                          response = result.toStyledString();
+                                        } else {
+                                          response = R"({"error": "Invalid JSON"})";
+                                        }
+                                      });
+
+    http_server_->registerSecureRoute("/acme/cert",
+                                      [this](const std::string &method,
+                                             const std::string &path,
+                                             const std::string &body,
+                                             std::string &response) {
+                                        // Extract cert_id from path
+                                        std::string cert_id = path.substr(
+                                            path.find_last_of('/') + 1);
+                                        Json::Value request;
+                                        Json::Reader reader;
+                                        if (reader.parse(body, request)) {
+                                          auto result = handleCertificate(
+                                              cert_id, request);
+                                          response = result.toStyledString();
+                                        } else {
+                                          response = R"({"error": "Invalid JSON"})";
+                                        }
+                                      });
+
+    http_server_->registerSecureRoute("/acme/revoke-cert",
+                                      [this](const std::string &method,
+                                             const std::string &path,
+                                             const std::string &body,
+                                             std::string &response) {
+                                        Json::Value request;
+                                        Json::Reader reader;
+                                        if (reader.parse(body, request)) {
+                                          auto result = handleRevokeCertificate(
+                                              request);
+                                          response = result.toStyledString();
+                                        } else {
+                                          response = R"({"error": "Invalid JSON"})";
+                                        }
+                                      });
+
+    // Start the HTTP server
+    if (!http_server_->start()) {
+      console::e("Failed to start HTTP server");
+      return;
+    }
+
+    console::e("ACME Server listening on port {}", server_port_);
     console::e("Kerberos principal: {}", kdc_principal_);
     console::e("Policy file: {}", policy_file_path_);
 
     // Keep server running
-    while (true) {
+    while (running_) {
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
 
-  void ACMEServer::stop() { console::e("ACME Server stopped"); }
+  void ACMEServer::stop() {
+    running_ = false;
+    if (http_server_) {
+      http_server_->stop();
+    }
+    console::e("ACME Server stopped");
+  }
 
   Json::Value ACMEServer::handleDirectory() {
     Json::Value response;
@@ -346,7 +474,7 @@ namespace acme {
   std::string ACMEServer::generateNonce() {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, 0xFFFFFFFFFFFFFFFFULL);
+    std::uniform_int_distribution<uint64_t> dis(0, 0xFFFFFFFFFFFFFFFFULL);
 
     std::string nonce;
     nonce.resize(16);

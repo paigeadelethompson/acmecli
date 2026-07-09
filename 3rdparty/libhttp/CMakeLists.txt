@@ -1,12 +1,18 @@
 # HTTP Client Library
-# Provides HTTP client functionality with GSSAPI/Kerberos authentication support
+# Provides HTTP client and server functionality with GSSAPI/Kerberos authentication support
 
 add_library(libhttp STATIC
     HTTPClient.cpp
+    HTTPServer.cpp
+    KerberosAuth.cpp
 )
 
 target_include_directories(libhttp PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(libhttp PUBLIC
+    libconsole
 )
 
 # Check for libfetch

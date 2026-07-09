@@ -24,6 +24,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src/common
     ${CMAKE_SOURCE_DIR}/src/server
     ${CMAKE_SOURCE_DIR}/src/client
+    ${CMAKE_SOURCE_DIR}/3rdparty/libconsole
     ${KERBEROS5_INCLUDE_DIRS}
     ${GSSAPI_INCLUDE_DIRS}
     ${OPENSSL_INCLUDE_DIRS}
@@ -38,6 +39,9 @@ target_include_directories(jsoncpp PUBLIC
 )
 target_link_libraries(jsoncpp PUBLIC)
 
+# Console library
+add_subdirectory(3rdparty/libconsole)
+
 # HTTP Client Library
 add_subdirectory(3rdparty/libhttp)
 
@@ -46,11 +50,11 @@ add_executable(acme_server
     src/server/main.cpp
     src/server/acme_server.cpp
     src/server/certificate_manager.cpp
-    src/common/kerberos_auth.cpp
     src/server/policy_manager.cpp
 )
 target_link_libraries(acme_server
     jsoncpp
+    libhttp
     PkgConfig::KERBEROS5
     PkgConfig::GSSAPI
     PkgConfig::OPENSSL
@@ -60,7 +64,6 @@ target_link_libraries(acme_server
 add_executable(acme_client
     src/client/main.cpp
     src/client/acme_client.cpp
-    src/common/kerberos_auth.cpp
 )
 target_link_libraries(acme_client
     jsoncpp
