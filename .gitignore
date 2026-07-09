@@ -1,0 +1,59 @@
+# Build directories
+build/
+cmake-build-*/
+
+# Compiled files
+*.o
+*.so
+*.a
+*.dylib
+*.exe
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OpenSSL files
+*.pem
+*.key
+*.crt
+*.der
+*.p12
+
+# Temporary files
+*.tmp
+*.log
+*.out
+
+# Test files
+test_*.sh
+*_test.cpp
+
+# Policy files (sensitive)
+policy.json
+*.keytab
+
+# Certificate files
+*.p12
+*.pfx
+*.cer
+*.der
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# C++ files
+*.cpp~
+*.hpp~
+*.h~
