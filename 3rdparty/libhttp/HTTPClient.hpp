@@ -5,11 +5,13 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <chrono>
 
 #include <gssapi/gssapi.h>
 
 namespace acme {
 
+// Forward declarations
 class Request;
 class Response;
 
@@ -152,6 +154,14 @@ private:
      */
     void parseResponse(Response& response, FILE* file);
     
+    /**
+     * @brief Perform HTTP request
+     * @param request Request object
+     * @param response Response object to populate
+     * @return true if request successful
+     */
+    bool performRequest(Request& request, Response& response);
+    
     std::string principal_;
     std::string keytab_path_;
     gss_cred_id_t credentials_;
@@ -259,6 +269,7 @@ private:
     std::string content_type_;
     std::string accept_;
     std::map<std::string, std::string> headers_;
+    size_t content_length_;
 };
 
 /**
@@ -347,6 +358,15 @@ public:
      * @return Effective URL string
      */
     std::string getEffectiveUrl() const;
+
+    // Setters
+    void setStatusCode(int code);
+    void addHeader(const std::string& name, const std::string& value);
+    void setBody(const std::string& body);
+    void setUrl(const std::string& url);
+    void setResponseTime(long time);
+    void setEffectiveUrl(const std::string& url);
+    void setLastError(const std::string& error);
 
 private:
     int status_code_;

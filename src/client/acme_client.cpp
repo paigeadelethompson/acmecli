@@ -177,7 +177,7 @@ bool ACMEClient::validateCSR(const Json::Value& csr) {
 }
 
 bool ACMEClient::createCSR(const std::string& common_name, std::string& csr_pem) {
-    // Generate RSA key
+    // Generate RSA key using modern OpenSSL 3.0 API
     EVP_PKEY* key = generateRSAKey(2048);
     if (!key) {
         console::e("Failed to generate RSA key");
@@ -255,41 +255,37 @@ bool ACMEClient::createCSR(const std::string& common_name, std::string& csr_pem)
 }
 
 EVP_PKEY* ACMEClient::generateRSAKey(size_t key_size) {
+    // Generate RSA key using modern OpenSSL 3.0 API
     EVP_PKEY* key = EVP_PKEY_new();
     if (!key) {
         return nullptr;
     }
 
-    RSA* rsa = RSA_new();
-    if (!rsa) {
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr);
+    if (!ctx) {
         EVP_PKEY_free(key);
         return nullptr;
     }
 
-    BIGNUM* bn = BN_new();
-    if (!bn) {
-        RSA_free(rsa);
+    if (EVP_PKEY_keygen_init(ctx) <= 0) {
+        EVP_PKEY_CTX_free(ctx);
         EVP_PKEY_free(key);
         return nullptr;
     }
 
-    BN_set_word(bn, RSA_F4);
-
-    if (RSA_generate_key_ex(rsa, key_size, bn, nullptr) != 1) {
-        BN_free(bn);
-        RSA_free(rsa);
+    if (EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, key_size) <= 0) {
+        EVP_PKEY_CTX_free(ctx);
         EVP_PKEY_free(key);
         return nullptr;
     }
 
-    BN_free(bn);
-
-    if (EVP_PKEY_assign_RSA(key, rsa) != 1) {
-        RSA_free(rsa);
+    if (EVP_PKEY_keygen(ctx, &key) <= 0) {
+        EVP_PKEY_CTX_free(ctx);
         EVP_PKEY_free(key);
         return nullptr;
     }
 
+    EVP_PKEY_CTX_free(ctx);
     return key;
 }
 

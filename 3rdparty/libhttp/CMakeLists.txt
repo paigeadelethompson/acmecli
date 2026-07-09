@@ -3,8 +3,6 @@
 
 add_library(libhttp STATIC
     HTTPClient.cpp
-    Request.cpp
-    Response.cpp
 )
 
 target_include_directories(libhttp PUBLIC
@@ -12,16 +10,13 @@ target_include_directories(libhttp PUBLIC
 )
 
 # Check for libfetch
-if(PKG_CONFIG_FOUND)
-    pkg_check_modules(LIBFETCH libfetch)
-    if(LIBFETCH_FOUND)
-        target_compile_definitions(libhttp PRIVATE HAVE_LIBFETCH)
-        target_link_libraries(libhttp PUBLIC ${LIBFETCH_LIBRARIES})
-    endif()
-endif()
-
-# Check for libcurl as fallback
-if(NOT LIBFETCH_FOUND)
+find_library(FETCH_LIBRARY NAMES fetch PATHS /usr/lib /usr/lib64 /usr/local/lib /usr/local/lib64)
+if(FETCH_LIBRARY)
+    target_compile_definitions(libhttp PRIVATE HAVE_LIBFETCH)
+    target_link_libraries(libhttp PUBLIC ${FETCH_LIBRARY})
+    message(STATUS "Found libfetch: ${FETCH_LIBRARY}")
+else()
+    message(STATUS "libfetch not found, will use libcurl as fallback")
     find_package(CURL REQUIRED)
     target_link_libraries(libhttp PUBLIC CURL::libcurl)
 endif()

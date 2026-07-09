@@ -43,7 +43,9 @@ private:
     std::string account_id_;
     std::string config_path_;
 
-    std::unique_ptr<KerberosAuth> kerberos_auth_;    std::unique_ptr\u003cHTTPClient\u003e http_client_;
+    std::unique_ptr<KerberosAuth> kerberos_auth_;
+    std::unique_ptr<HTTPClient> http_client_;
+
     std::string current_nonce_;
     std::string current_jws_;
 

@@ -1,11 +1,10 @@
 #include "HTTPClient.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
 #include "console.hpp"
 #include <fstream>
 #include <sstream>
 #include <chrono>
 #include <cstring>
+#include <sys/param.h>
 
 #ifdef HAVE_LIBFETCH
 #include <fetch.h>
@@ -54,7 +53,7 @@ bool HTTPClient::initialize() {
         return false;
     }
 
-    maj_stat = gss_acquire_cred(&min_stat, name, GSS_C_INDEFINITE, GSS_C_NO_OID,
+    maj_stat = gss_acquire_cred(&min_stat, name, GSS_C_INDEFINITE, GSS_C_NO_OID_SET,
                                 GSS_C_INITIATE, &credentials_, NULL, NULL);
 
     gss_release_name(&min_stat, &name);
@@ -291,21 +290,22 @@ void HTTPClient::cleanupGSS() {
 
 void HTTPClient::parseResponse(Response& response, FILE* file) {
     // Read headers
-    std::string line;
-    while (std::getline(file, line) && line != "\r") {
-        if (line.find("HTTP/") == 0) {
+    char line[4096];
+    while (fgets(line, sizeof(line), file)) {
+        std::string line_str(line);
+        if (line_str.find("HTTP/") == 0) {
             // Parse status line
-            size_t space1 = line.find(' ');
-            size_t space2 = line.find(' ', space1 + 1);
+            size_t space1 = line_str.find(' ');
+            size_t space2 = line_str.find(' ', space1 + 1);
             if (space1 != std::string::npos && space2 != std::string::npos) {
-                response.setStatusCode(std::stoi(line.substr(space1 + 1, space2 - space1 - 1)));
+                response.setStatusCode(std::stoi(line_str.substr(space1 + 1, space2 - space1 - 1)));
             }
         } else {
             // Parse header
-            size_t colon = line.find(':');
+            size_t colon = line_str.find(':');
             if (colon != std::string::npos) {
-                std::string name = line.substr(0, colon);
-                std::string value = line.substr(colon + 2); // Skip ": "
+                std::string name = line_str.substr(0, colon);
+                std::string value = line_str.substr(colon + 2); // Skip ": "
                 response.addHeader(name, value);
             }
         }
