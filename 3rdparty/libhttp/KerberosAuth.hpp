@@ -47,13 +47,7 @@ namespace acme {
     bool authenticateClient(const std::string &token, std::string &principal);
     bool validateToken(const std::string &token);
 
-    // GSSAPI token operations
-    OM_uint32 wrapToken(gss_ctx_id_t context, const std::string &token,
-                        std::string &wrapped_token);
-    OM_uint32 unwrapToken(gss_ctx_id_t context,
-                          const std::string &wrapped_token, std::string &token);
-
-    // Client-side signing operations using GSS_GetMIC for JWS signing
+    // Message integrity operations using GSS-API for both server and client
     OM_uint32 signMessage(const std::string &message, std::string &signature);
     OM_uint32 verifyMessage(const std::string &message,
                             const std::string &signature);

@@ -47,10 +47,10 @@ Where `K_session` is the Kerberos session key derived from the ticket, and `HMAC
 The `KerberosAuth` class provides server-side authentication capabilities:
 
 - **initialize()**: Acquires server credentials from a keytab file
-- **authenticateClient()**: Validates client tokens and extracts principal names
-- **validateToken()**: Convenience method for token validation
-- **wrapToken()**: Encrypts and wraps tokens for secure transmission
-- **unwrapToken()**: Decrypts and unwraps incoming tokens
+- **authenticateClient()**: Validates client Kerberos tokens and extracts principal names
+- **validateToken()**: Convenience method for token validation (authentication)
+- **signMessage()**: Generates message integrity code (MIC) for signing
+- **verifyMessage()**: Verifies message integrity code (MIC) for data integrity
 
 #### Key Components
 
@@ -79,6 +79,17 @@ For HTTP communication, the library implements:
 1. **Request Signing**: Client signs HTTP requests with MICs
 2. **Response Verification**: Server verifies request MICs before processing
 3. **Token Protection**: Kerberos tokens are wrapped to prevent tampering
+
+### Key Method Differences
+
+| Method | Purpose | GSS-API Function | Return Type |
+|--------|---------|------------------|-------------|
+| `validateToken()` | Validates client identity (authentication) | `gss_accept_sec_context()` | `bool` |
+| `verifyMessage()` | Validates data integrity (integrity) | `gss_verify_mic()` | `OM_uint32` |
+
+**Authentication vs. Integrity:**
+- **Authentication** (`validateToken()`): Proves who the client is
+- **Integrity** (`verifyMessage()`): Proves the data hasn't been modified
 
 ## Usage Example
 
@@ -119,8 +130,6 @@ if (client_auth.signMessage(message, signature) == GSS_S_COMPLETE) {
 | `gss_acquire_cred` | Acquire credentials from keytab |
 | `gss_import_name` | Import Kerberos principal name |
 | `gss_accept_sec_context` | Accept client authentication tokens |
-| `gss_wrap` | Encrypt and wrap tokens |
-| `gss_unwrap` | Decrypt and unwrap tokens |
 | `gss_get_mic` | Generate message integrity code |
 | `gss_verify_mic` | Verify message integrity code |
 | `gss_delete_sec_context` | Clean up security contexts |
@@ -132,6 +141,17 @@ if (client_auth.signMessage(message, signature) == GSS_S_COMPLETE) {
 3. **Replay Protection**: Always check timestamps in tokens
 4. **Error Handling**: Never expose detailed GSS-API error messages to clients
 5. **Memory Management**: Always release GSS buffers and contexts to prevent leaks
+
+## GSS-API Functions Used
+
+| Function | Purpose |
+|----------|---------|
+| `gss_acquire_cred` | Acquire credentials from keytab |
+| `gss_import_name` | Import Kerberos principal name |
+| `gss_accept_sec_context` | Accept client authentication tokens |
+| `gss_get_mic` | Generate message integrity code |
+| `gss_verify_mic` | Verify message integrity code |
+| `gss_delete_sec_context` | Clean up security contexts |
 
 ## Dependencies
 

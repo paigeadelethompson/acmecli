@@ -475,48 +475,4 @@ namespace acme {
     return maj_stat;
   }
 
-  OM_uint32 ACMEClient::wrapToken(gss_ctx_id_t context,
-                                  const std::string &token,
-                                  std::string &wrapped_token) {
-    OM_uint32 maj_stat, min_stat;
-    gss_buffer_desc input_token;
-    gss_buffer_desc output_token;
-
-    input_token.length = token.length();
-    input_token.value = const_cast<char *>(token.c_str());
-
-    maj_stat = gss_wrap(&min_stat, context, true, GSS_C_QOP_DEFAULT,
-                        &input_token, nullptr, &output_token);
-
-    if (maj_stat == GSS_S_COMPLETE) {
-      wrapped_token = std::string(static_cast<char *>(output_token.value),
-                                  output_token.length);
-      gss_release_buffer(&min_stat, &output_token);
-    }
-
-    return maj_stat;
-  }
-
-  OM_uint32 ACMEClient::unwrapToken(gss_ctx_id_t context,
-                                    const std::string &wrapped_token,
-                                    std::string &token) {
-    OM_uint32 maj_stat, min_stat;
-    gss_buffer_desc input_token;
-    gss_buffer_desc output_token;
-
-    input_token.length = wrapped_token.length();
-    input_token.value = const_cast<char *>(wrapped_token.c_str());
-
-    maj_stat = gss_unwrap(&min_stat, context, &input_token, &output_token,
-                          nullptr, nullptr);
-
-    if (maj_stat == GSS_S_COMPLETE) {
-      token = std::string(static_cast<char *>(output_token.value),
-                          output_token.length);
-      gss_release_buffer(&min_stat, &output_token);
-    }
-
-    return maj_stat;
-  }
-
 } // namespace acme

@@ -103,10 +103,6 @@ namespace acme {
     OM_uint32 initSecurityContext(const std::string &target_principal,
                                   gss_ctx_id_t *context,
                                   gss_cred_id_t client_cred);
-    OM_uint32 wrapToken(gss_ctx_id_t context, const std::string &token,
-                        std::string &wrapped_token);
-    OM_uint32 unwrapToken(gss_ctx_id_t context,
-                          const std::string &wrapped_token, std::string &token);
     void cleanupGSS(gss_ctx_id_t context, gss_cred_id_t cred);
   };
 
